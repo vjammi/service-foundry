@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/services/shared" },
+    { "path": "./packages/apps/console" },
+    { "path": "./packages/services/server" }
+  ]
+}

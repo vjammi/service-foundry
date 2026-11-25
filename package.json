@@ -1,0 +1,19 @@
+{
+  "name": "service-foundry",
+  "version": "1.0.0",
+  "description": "TypeScript workspace for Node.js applications and shared services",
+  "private": true,
+  "packageManager": "pnpm@9.14.2",
+  "engines": { "node": ">=22.11.0 <23", "pnpm": "9.14.2" },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "tsc -b --clean",
+    "watch": "tsc -b --watch",
+    "start": "pnpm run build && pnpm --filter @service-foundry/console --filter @service-foundry/server --parallel run start",
+    "test": "pnpm run build && pnpm -r run test",
+    "check": "pnpm run clean && pnpm test",
+    "deploy:console": "pnpm --filter @service-foundry/console build && pnpm --filter @service-foundry/console deploy --prod artifacts/console",
+    "deploy:server": "pnpm --filter @service-foundry/server build && pnpm --filter @service-foundry/server deploy --prod artifacts/server"
+  },
+  "devDependencies": { "typescript": "5.9.3" }
+}

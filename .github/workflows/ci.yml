@@ -1,0 +1,50 @@
+name: CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - run: npm install --global pnpm@9.14.2
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+  deployment:
+    needs: check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - app: console
+            directory: packages/apps/console
+          - app: server
+            directory: packages/services/server
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - run: npm install --global pnpm@9.14.2
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm deploy:${{ matrix.app }}
+      - name: Verify isolated production artifact
+        run: node scripts/smoke-deployment.cjs artifacts/${{ matrix.app }} ${{ matrix.app }}
+      - name: Archive deployment
+        run: tar -czf ${{ matrix.app }}.tar.gz -C artifacts/${{ matrix.app }} .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-deployment
+          path: ${{ matrix.app }}.tar.gz
+      - name: Build container
+        run: docker build -f ${{ matrix.directory }}/Dockerfile -t service-foundry-${{ matrix.app }}:ci .
+      - name: Smoke test container
+        run: |
+          docker run -d --name app -p 127.0.0.1:8080:8080 -e PORT=8080 service-foundry-${{ matrix.app }}:ci
+          trap 'docker logs app; docker rm -f app' EXIT
+          curl --fail --retry 20 --retry-connrefused --retry-delay 1 http://127.0.0.1:8080/health
